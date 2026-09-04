@@ -10,6 +10,17 @@ usage() {
   exit 1
 }
 
+# ---- Check prerequisites are installed before doing anything else ----
+missing=""
+for cmd in HandBrakeCLI ffprobe; do
+  command -v "$cmd" >/dev/null 2>&1 || missing="$missing $cmd"
+done
+if [ -n "$missing" ]; then
+  echo "Error: missing required tool(s):$missing" >&2
+  echo "See the Requirements section in README.md for install instructions." >&2
+  exit 1
+fi
+
 INPUT=""
 OUTDIR=""
 YEAR=""
