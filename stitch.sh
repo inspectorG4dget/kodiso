@@ -2,19 +2,23 @@
 set -e
 
 usage() {
-  echo "Usage: $0 -i <iso_file_or_mounted_dvd_path> -o <output_path>" >&2
+  echo "Usage: $0 -i <iso_file_or_mounted_dvd_path> -o <output_path> -y <release_year>" >&2
   echo "  -i  ISO file or mounted DVD device path to rip" >&2
-  echo "  -o  destination path; its leaf directory name becomes the movie title" >&2
+  echo "  -o  destination path; its leaf directory name is the movie title" >&2
+  echo "  -y  the movie's release year (4 digits)" >&2
+  echo "      output is written as '<output_path> (<year>)/<leaf> (<year>).mkv'" >&2
   exit 1
 }
 
 INPUT=""
 OUTDIR=""
+YEAR=""
 
-while getopts ":i:o:" opt; do
+while getopts ":i:o:y:" opt; do
   case "$opt" in
     i) INPUT="$OPTARG" ;;
     o) OUTDIR="$OPTARG" ;;
+    y) YEAR="$OPTARG" ;;
     :) echo "Error: -$OPTARG requires an argument" >&2; usage ;;
     \?) echo "Error: invalid option -$OPTARG" >&2; usage ;;
   esac
@@ -22,6 +26,12 @@ done
 
 [ -z "$INPUT" ] && usage
 [ -z "$OUTDIR" ] && usage
+[ -z "$YEAR" ] && usage
+
+if ! [[ "$YEAR" =~ ^[0-9]{4}$ ]]; then
+  echo "Error: -y must be a 4-digit year (got '$YEAR')" >&2
+  exit 1
+fi
 
 # ---- Validate -i: must be a mounted DVD directory, or an ISO/UDF disc image file ----
 if [ -d "$INPUT" ]; then
@@ -44,12 +54,14 @@ if [ ! -d "$PARENT_DIR" ]; then
 fi
 
 MOVIE_NAME=$(basename "$OUTDIR")
+FULL_NAME="${MOVIE_NAME} (${YEAR})"
+FINAL_DIR="${PARENT_DIR}/${FULL_NAME}"
 
 # ---- Warn before touching a non-empty output directory (dotfiles don't count) ----
-if [ -d "$OUTDIR" ]; then
-  visible_entries=$(find "$OUTDIR" -mindepth 1 -maxdepth 1 ! -name '.*')
+if [ -d "$FINAL_DIR" ]; then
+  visible_entries=$(find "$FINAL_DIR" -mindepth 1 -maxdepth 1 ! -name '.*')
   if [ -n "$visible_entries" ]; then
-    echo "Warning: output directory '$OUTDIR' already exists and is not empty."
+    echo "Warning: output directory '$FINAL_DIR' already exists and is not empty."
     read -r -p "Overwrite? [y/N] " reply
     case "$reply" in
       [yY]|[yY][eE][sS]) ;;
@@ -58,7 +70,7 @@ if [ -d "$OUTDIR" ]; then
   fi
 fi
 
-mkdir -p "$OUTDIR/extras"
+mkdir -p "$FINAL_DIR/extras"
 
 # ---- Rip into a scratch temp dir; always clean it up on exit ----
 TMPDIR=$(mktemp -d)
@@ -95,17 +107,17 @@ done
 echo "Main feature: title${main_title}.mkv (${main_dur}s)"
 
 echo "=== Organizing into Kodi structure ==="
-mv "$TMPDIR/title${main_title}.mkv" "$OUTDIR/${MOVIE_NAME}.mkv"
+mv "$TMPDIR/title${main_title}.mkv" "$FINAL_DIR/${FULL_NAME}.mkv"
 
 extra_n=1
 for i in $titles; do
   if [ "$i" != "$main_title" ]; then
-    mv "$TMPDIR/title${i}.mkv" "$OUTDIR/extras/Extra ${extra_n} (title${i}).mkv"
+    mv "$TMPDIR/title${i}.mkv" "$FINAL_DIR/extras/Extra ${extra_n} (title${i}).mkv"
     extra_n=$((extra_n+1))
   fi
 done
 
 echo "=== Done ==="
-echo "Main feature: $OUTDIR/${MOVIE_NAME}.mkv"
+echo "Main feature: $FINAL_DIR/${FULL_NAME}.mkv"
 echo "Extras:"
-ls "$OUTDIR/extras"
+ls "$FINAL_DIR/extras"
