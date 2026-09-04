@@ -1,10 +1,45 @@
 # kodiso
 extract ISO streams into multiple MKV streams to watch on Kodi
 
+## Requirements
+
+`encode.sh` works unmodified on both Linux and macOS. It requires
+`HandBrakeCLI` and `ffprobe` (from ffmpeg) on your `PATH`; the script checks
+for both on startup and exits with an error if either is missing.
+
+If you're ripping from a physical DVD rather than an existing ISO, you'll
+also need a tool to create the ISO first — this is a manual pre-step and
+isn't invoked by the script itself.
+
+### Linux
+
+```
+apt install handbrake-cli ffmpeg genisoimage
+```
+
+Create an ISO from a mounted DVD with:
+
+```
+genisoimage -dvd-video -udf -o movie.iso /path/to/mounted/dvd
+```
+
+### macOS
+
+```
+brew install handbrake ffmpeg
+```
+
+ISO creation is handled by `hdiutil`, which ships with macOS — no install
+needed:
+
+```
+hdiutil makehybrid -udf -o movie.iso /Volumes/DVD_NAME
+```
+
 ## Usage
 
 ```
-./stitch.sh -i <iso_file_or_mounted_dvd_path> -o <output_path> -y <release_year>
+./encode.sh -i <iso_file_or_mounted_dvd_path> -o <output_path> -y <release_year>
 ```
 
 - `-i` — an ISO/UDF disc image file, or the path to a mounted DVD device. Required.
