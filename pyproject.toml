@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kodiso-gui"
+version = "0.1.0"
+description = "Streamlit GUI for batch kodiso encoding"
+requires-python = ">=3.9"
+dependencies = [
+    "streamlit>=1.30",
+]
+
+[tool.setuptools]
+py-modules = ["gui", "file_picker"]
