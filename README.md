@@ -3,7 +3,7 @@ extract ISO streams into multiple MKV streams to watch on Kodi
 
 ## Requirements
 
-`stitch.sh` works unmodified on both Linux and macOS. It requires
+`encode.sh` works unmodified on both Linux and macOS. It requires
 `HandBrakeCLI` and `ffprobe` (from ffmpeg) on your `PATH`; the script checks
 for both on startup and exits with an error if either is missing.
 
@@ -39,7 +39,7 @@ hdiutil makehybrid -udf -o movie.iso /Volumes/DVD_NAME
 ## Usage
 
 ```
-./stitch.sh -i <iso_file_or_mounted_dvd_path> -o <output_path> -y <release_year>
+./encode.sh -i <iso_file_or_mounted_dvd_path> -o <output_path> -y <release_year>
 ```
 
 - `-i` — an ISO/UDF disc image file, or the path to a mounted DVD device. Required.
