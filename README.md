@@ -36,7 +36,7 @@ needed:
 hdiutil makehybrid -udf -o movie.iso /Volumes/DVD_NAME
 ```
 
-## Usage
+## CLI Usage
 
 ```
 ./encode.sh -i <iso_file_or_mounted_dvd_path> -o <output_path> -y <release_year>
@@ -55,3 +55,39 @@ feature (longest title) is written to
 
 If the resulting output directory already exists and contains visible files,
 you'll be prompted to overwrite before anything is ripped.
+
+## GUI Usage
+
+A Streamlit GUI (`gui.py`) supports batch processing: queue up multiple
+rips, each with its own input, output directory, name, and year, and it
+rips them one at a time in the background while you keep adding more.
+
+Install the GUI's dependencies and launch it:
+
+```
+pip install .
+streamlit run gui.py
+```
+
+This is a single-user tool meant to be run locally on your own machine —
+it opens native file/folder picker dialogs (via `tkinter`, which ships with
+most Python installs; on Linux you may need e.g. `apt install python3-tk`)
+and detects any mounted CD/DVD drive automatically.
+
+For each row:
+- **Input** — pick a detected CD/DVD drive from the dropdown, or click
+  "Browse ISO…" to pick an ISO/UDF file.
+- **Output dir** — click "Browse output dir…" to choose where the ripped
+  movie is written (same semantics as `encode.sh -o`'s parent directory).
+- **Name** — defaults to the ISO's filename or the disc's volume name;
+  editable.
+- **Year** — the movie's release year.
+
+Click ▶️ to queue the row — it appends to a FIFO encode queue (processed
+one at a time in a background process so the UI stays responsive), and a
+new empty row appears below it. A queued row's fields stay editable until
+it starts encoding; once it's the row actively encoding, its fields lock
+and ▶️ becomes 🛑. Clicking 🛑 on a queued row just removes it from the
+queue; clicking it on the running row kills the encode and lets
+`encode.sh`'s own cleanup remove its temp files. The sidebar shows a live
+progress bar for the row currently encoding and a log of completed rips.
