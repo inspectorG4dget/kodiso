@@ -84,9 +84,24 @@ fi
 mkdir -p "$FINAL_DIR/extras"
 
 # ---- Rip into a scratch temp dir; always clean it up on exit ----
-TMPDIR=$(mktemp -d)
+# Prefer the user's per-session temp dir, but macOS doesn't always have it
+# provisioned (e.g. no full GUI login yet), in which case mktemp fails with
+# a "No such file or directory" for a /var/folders/... path. Fall back to
+# /tmp, which is always present.
+WORKDIR=""
+for base in "${TMPDIR:-}" /tmp; do
+  [ -z "$base" ] && continue
+  if WORKDIR=$(mktemp -d "${base%/}/kodiso.XXXXXXXX" 2>/dev/null); then
+    break
+  fi
+done
+if [ -z "$WORKDIR" ]; then
+  echo "Error: could not create a scratch temp directory under '${TMPDIR:-<unset>}' or /tmp." >&2
+  echo "Check that a temp directory exists and is writable (e.g. 'mkdir -p /tmp')." >&2
+  exit 1
+fi
 cleanup() {
-  rm -rf "$TMPDIR"
+  rm -rf "$WORKDIR"
 }
 trap cleanup EXIT
 
@@ -96,7 +111,7 @@ echo "Found titles: $titles"
 
 echo "=== Ripping all titles ==="
 for i in $titles; do
-  HandBrakeCLI -i "$INPUT" -o "$TMPDIR/title${i}.mkv" \
+  HandBrakeCLI -i "$INPUT" -o "$WORKDIR/title${i}.mkv" \
     -t "${i}" \
     -m \
     -e x264 -q 20 \
@@ -107,7 +122,7 @@ echo "=== Measuring durations to find main feature (longest) ==="
 main_title=""
 main_dur=0
 for i in $titles; do
-  dur=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$TMPDIR/title${i}.mkv")
+  dur=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$WORKDIR/title${i}.mkv")
   dur_int=${dur%.*}
   echo "title${i}.mkv: ${dur_int}s"
   if [ "$dur_int" -gt "$main_dur" ]; then
@@ -118,12 +133,12 @@ done
 echo "Main feature: title${main_title}.mkv (${main_dur}s)"
 
 echo "=== Organizing into Kodi structure ==="
-mv "$TMPDIR/title${main_title}.mkv" "$FINAL_DIR/${FULL_NAME}.mkv"
+mv "$WORKDIR/title${main_title}.mkv" "$FINAL_DIR/${FULL_NAME}.mkv"
 
 extra_n=1
 for i in $titles; do
   if [ "$i" != "$main_title" ]; then
-    mv "$TMPDIR/title${i}.mkv" "$FINAL_DIR/extras/Extra ${extra_n} (title${i}).mkv"
+    mv "$WORKDIR/title${i}.mkv" "$FINAL_DIR/extras/Extra ${extra_n} (title${i}).mkv"
     extra_n=$((extra_n+1))
   fi
 done
