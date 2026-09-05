@@ -86,7 +86,7 @@ jobs:
       - name: Compute next serial version
         id: version
         run: |
-          latest=$(git tag --list | grep -E '^v[0-9]+$' | sed 's/^v//' | sort -n | tail -1)
+          latest=$(git tag --list | { grep -E '^v[0-9]+$' || true; } | sed 's/^v//' | sort -n | tail -1)
           latest=${latest:-0}
           echo "tag=v$((latest + 1))" >> "$GITHUB_OUTPUT"
 
