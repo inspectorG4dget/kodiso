@@ -62,7 +62,17 @@ A Streamlit GUI (`gui.py`) supports batch processing: queue up multiple
 rips, each with its own input, output directory, name, and year, and it
 rips them one at a time in the background while you keep adding more.
 
-Install the GUI's dependencies and launch it:
+On macOS, the easiest way to run it is to download the prebuilt
+`kodiso-gui` app from the
+[latest release](../../releases/latest) — pick the `arm64` zip for
+Apple Silicon Macs or `x86_64` for Intel Macs, unzip it, and double-click
+`kodiso-gui.app`. It's ad-hoc signed rather than notarized, so the first
+launch will need a right-click → Open (or `xattr -d com.apple.quarantine
+kodiso-gui.app`) to get past Gatekeeper. It still needs `HandBrakeCLI`
+and `ffprobe` on your `PATH` (see Requirements above) — only the GUI
+itself is bundled, not those tools.
+
+Otherwise, install the GUI's dependencies and launch it directly:
 
 ```
 pip install .

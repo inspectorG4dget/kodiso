@@ -11,5 +11,8 @@ dependencies = [
     "streamlit>=1.30",
 ]
 
+[project.optional-dependencies]
+build = ["pyinstaller>=6.0"]
+
 [tool.setuptools]
-py-modules = ["gui", "file_picker"]
+py-modules = ["gui", "file_picker", "launch_gui"]
