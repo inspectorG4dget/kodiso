@@ -21,7 +21,8 @@ from typing import Optional
 import streamlit as st
 from multiprocessing import Manager, Process
 
-REPO_ROOT = Path(__file__).resolve().parent
+FROZEN = getattr(sys, "frozen", False)
+REPO_ROOT = Path(getattr(sys, "_MEIPASS", "")) if FROZEN else Path(__file__).resolve().parent
 ENCODE_SCRIPT = REPO_ROOT / "encode.sh"
 FILE_PICKER_SCRIPT = REPO_ROOT / "file_picker.py"
 
@@ -231,7 +232,12 @@ def _detect_optical_drives_linux() -> list[str]:
 # --------------------------------------------------------------------------
 
 def run_native_picker(mode: str, initialdir: Optional[str] = None) -> Optional[str]:
-    cmd = [sys.executable, str(FILE_PICKER_SCRIPT), mode]
+    if FROZEN:
+        # No separate Python interpreter to hand file_picker.py to --
+        # re-invoke this same frozen binary, which dispatches on the flag.
+        cmd = [sys.executable, "--file-picker", mode]
+    else:
+        cmd = [sys.executable, str(FILE_PICKER_SCRIPT), mode]
     if initialdir:
         cmd.append(initialdir)
     try:

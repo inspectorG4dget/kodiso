@@ -1,0 +1,100 @@
+name: macOS GUI release
+
+on:
+  pull_request:
+    paths:
+      - "gui.py"
+      - "file_picker.py"
+      - "launch_gui.py"
+      - "encode.sh"
+      - "pyproject.toml"
+      - ".github/workflows/release.yml"
+  push:
+    branches: [main]
+    paths:
+      - "gui.py"
+      - "file_picker.py"
+      - "launch_gui.py"
+      - "encode.sh"
+      - "pyproject.toml"
+      - ".github/workflows/release.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-15
+            arch: x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build dependencies
+        run: pip install .[build]
+
+      - name: Build .app bundle with PyInstaller
+        run: |
+          pyinstaller --noconfirm --clean --windowed --name kodiso-gui \
+            --add-data "gui.py:." \
+            --add-data "encode.sh:." \
+            --collect-all streamlit \
+            --hidden-import file_picker \
+            launch_gui.py
+
+      - name: Ad-hoc code sign
+        run: codesign --force --deep --sign - dist/kodiso-gui.app
+
+      - name: Zip app bundle
+        run: |
+          cd dist
+          ditto -c -k --sequesterRsrc --keepParent kodiso-gui.app \
+            "kodiso-gui-macos-${{ matrix.arch }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kodiso-gui-macos-${{ matrix.arch }}
+          path: dist/kodiso-gui-macos-${{ matrix.arch }}.zip
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: kodiso-gui-macos-*
+          path: dist
+          merge-multiple: true
+
+      - name: Compute next serial version
+        id: version
+        run: |
+          latest=$(git tag --list | { grep -E '^v[0-9]+$' || true; } | sed 's/^v//' | sort -n | tail -1)
+          latest=${latest:-0}
+          echo "tag=v$((latest + 1))" >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: dist/*.zip

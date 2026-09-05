@@ -1,4 +1,7 @@
 __pycache__/
+.kodiso
 .venv
 build/
+dist/
+*.spec
 kodiso_gui.egg-info/
