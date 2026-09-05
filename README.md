@@ -80,9 +80,13 @@ streamlit run gui.py
 ```
 
 This is a single-user tool meant to be run locally on your own machine —
-it opens native file/folder picker dialogs (via `tkinter`, which ships with
-most Python installs; on Linux you may need e.g. `apt install python3-tk`)
-and detects any mounted CD/DVD drive automatically.
+it opens native file/folder picker dialogs (on macOS, via AppleScript
+`osascript`, which is built in — the first time you click a Browse button,
+macOS will ask for permission to control Finder; grant it in System
+Settings → Privacy & Security → Automation and try again. On Linux, via
+`tkinter`, which ships with most Python installs; you may need e.g.
+`apt install python3-tk`) and detects any mounted CD/DVD drive
+automatically.
 
 For each row:
 - **Input** — pick a detected CD/DVD drive from the dropdown, or click

@@ -21,6 +21,8 @@ from typing import Optional
 import streamlit as st
 from multiprocessing import Manager, Process
 
+from file_picker import PERMISSION_DENIED_MARKER
+
 FROZEN = getattr(sys, "frozen", False)
 REPO_ROOT = Path(getattr(sys, "_MEIPASS", "")) if FROZEN else Path(__file__).resolve().parent
 ENCODE_SCRIPT = REPO_ROOT / "encode.sh"
@@ -246,7 +248,14 @@ def run_native_picker(mode: str, initialdir: Optional[str] = None) -> Optional[s
         st.error("File picker timed out.")
         return None
     if result.returncode != 0:
-        st.error(f"Could not open native file picker: {result.stderr.strip()}")
+        if PERMISSION_DENIED_MARKER in result.stderr:
+            st.error(
+                "kodiso needs permission to control Finder to show the file "
+                "picker. Grant it in System Settings → Privacy & Security → "
+                "Automation, then try again."
+            )
+        else:
+            st.error(f"Could not open native file picker: {result.stderr.strip()}")
         return None
     path = result.stdout.strip()
     return path or None
